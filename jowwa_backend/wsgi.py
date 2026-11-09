@@ -1,7 +1,42 @@
 import os, sys
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path: sys.path.insert(0, BASE_DIR)
-    
+    import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'jowwa_backend.settings')
+
+from django.core.wsgi import get_wsgi_application
+
+application = get_wsgi_application()
+app = application
+
+try:
+    from django.core.management import call_command
+    from django.contrib.auth import get_user_model
+
+    call_command('migrate', '--run-syncdb', interactive=False)
+
+    User = get_user_model()
+    if not User.objects.filter(username='jowwa_admin').exists():
+        User.objects.create_superuser('jowwa_admin', 'admin@gowwa.com', 'Jowwa@Admin2026!')
+
+    from core.models import Store, MenuItem, DeliveryZone, SubscriptionPackage, SMSCampaign
+    if not Store.objects.exists():
+        Store.objects.create(name='مطعم جوة كاين', is_active=True)
+    if not DeliveryZone.objects.exists():
+        DeliveryZone.objects.create(name='القاهرة', fee=25.00)
+    if not SubscriptionPackage.objects.exists():
+        SubscriptionPackage.objects.create(name='الباقة الأساسية', price=100.00)
+    if not SMSCampaign.objects.exists():
+        SMSCampaign.objects.create(title='ترحيب', message='مرحباً بكم في جوة كاين')
+except Exception as e:
+    print(f"WSGI DB init error: {e}")
+
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'jowwa_backend.settings')
