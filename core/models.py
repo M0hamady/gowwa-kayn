@@ -1,4 +1,4 @@
-from django.db import mofrom django.db import modelsfrom django.db import models
+from django.db import models
 
 class Store(models.Model):
     PROVIDER_TYPE_CHOICES = [
