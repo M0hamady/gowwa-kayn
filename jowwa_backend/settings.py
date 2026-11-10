@@ -24,7 +24,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
-    'core',
+    'core 'hero_customizer', 'stores_pos', 'printing_libraries', 'realestate_finishing', 'map_geo', 'transit_hub', 'ai_assistant', 'services_directory', 'subscriptions_sms', 'notifications_mailer', 'device_analytics',
+    '
 ]
 
 MIDDLEWARE = [
@@ -82,7 +83,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'jowwa_backend.wsgi.application'
 
-DATABASES = {
+DATABADATSES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
       'NAME': '/tmp/joww_av_6.sqlite3',
