@@ -85,7 +85,7 @@ WSGI_APPLICATION = 'jowwa_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-      'NAME': '/tmp/jowwa_v4.sqlite3',
+      'NAME': '/tmp/joww_av_6.sqlite3',
     }
 }
 
