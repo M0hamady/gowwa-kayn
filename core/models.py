@@ -360,7 +360,157 @@ class SubscriptionPackage(models.Model):
 class SMSCampaign(models.Model):
     title = models.CharField(max_length=255)
     message = models.TextField(blank=True, default='')
-    sent_at = models.DateTimeField(auto_now_add=True)
+    sent_at = models.DateTimeFie
+
+class FirstSectionConfig(models.Model):
+    SECTOR_CHOICES = [
+        ('restaurants_sweets', 'restaurants_sweets'),
+        ('libraries_printing', 'libraries_printing'),
+        ('realestate_finishing', 'realestate_finishing'),
+        ('supermarket', 'supermarket'),
+        ('map_transport', 'map_transport'),
+        ('ai_assistant', 'ai_assistant'),
+    ]
+
+    sector_type = models.CharField(max_length=50, choices=SECTOR_CHOICES, unique=True, verbose_name="Sector Type")
+    main_title = models.CharField(max_length=255, verbose_name="Main Title")
+    description = models.TextField(blank=True, default='', verbose_name="Description")
+    is_verified_badge = models.BooleanField(default=True, verbose_name="Verified Badge")
+    quick_pinned_filters = models.CharField(max_length=255, blank=True, default='', verbose_name="Quick Pinned Filters")
+    cta_button_text = models.CharField(max_length=100, blank=True, default='', verbose_name="CTA Button Text")
+    cta_button_link = models.CharField(max_length=255, blank=True, default='', verbose_name="CTA Button Link")
+    is_active = models.BooleanField(default=True, verbose_name="Is Active")
+
+    class Meta:
+        verbose_name = "First Section Config"
+        verbose_name_plural = "First Section Configs"
+
+    def __str__(self):
+        return f"{self.sector_type} - {self.main_title}"
+
+
+class ConnectedEmailAccount(models.Model):
+    email_address = models.EmailField(unique=True, verbose_name="Email Address")
+    smtp_host = models.CharField(max_length=255, default='smtp.hostinger.com', verbose_name="SMTP Host")
+    smtp_port = models.IntegerField(default=465, verbose_name="SMTP Port")
+    smtp_user = models.CharField(max_length=255, verbose_name="SMTP User")
+    smtp_password = models.CharField(max_length=255, verbose_name="SMTP Password")
+    use_tls = models.BooleanField(default=False, verbose_name="Use TLS")
+    use_ssl = models.BooleanField(default=True, verbose_name="Use SSL")
+    is_active = models.BooleanField(default=True, verbose_name="Is Active")
+
+    class Meta:
+        verbose_name = "Connected Email Account"
+        verbose_name_plural = "Connected Email Accounts"
+
+    def __str__(self):
+        return f"{self.email_address} ({self.smtp_host}:{self.smtp_port})"
+
+
+class UnifiedNotificationDispatch(models.Model):
+    DISPATCH_CHOICES = [
+        ('email', 'Email Only'),
+        ('email_and_sms', 'Email + SMS'),
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+    ]
+
+    sender_email = models.ForeignKey(ConnectedEmailAccount, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Sender Email")
+    recipient = models.CharField(max_length=255, verbose_name="Recipient Email")
+    phone_number = models.CharField(max_length=50, blank=True, default='', verbose_name="Phone Number")
+    dispatch_type = models.CharField(max_length=20, choices=DISPATCH_CHOICES, default='email', verbose_name="Dispatch Type")
+    title = models.CharField(max_length=255, verbose_name="Notification Title")
+    message = models.TextField(verbose_name="Message Content")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
+    sent_at = models.DateTimeField(auto_now_add=True, verbose_name="Sent At")
+    error_log = models.TextField(blank=True, default='', verbose_name="Error Log")
+
+    class Meta:
+        verbose_name = "Unified Notification Dispatch"
+        verbose_name_plural = "Unified Notification Dispatches"
+
+    def __str__(self):
+        return f"{self.title} -> {self.recipient} [{self.status}]"
+
+    def dispatch(self):
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        if not self.sender_email:
+            self.status = 'failed'
+            self.error_log = 'No connected sender email selected.'
+            self.save()
+            return False
+
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = self.sender_email.email_address
+            msg['To'] = self.recipient
+            msg['Subject'] = self.title
+            msg.attach(MIMEText(self.message, 'plain', 'utf-8'))
+
+            if self.sender_email.use_ssl:
+                server = smtplib.SMTP_SSL(self.sender_email.smtp_host, self.sender_email.smtp_port, timeout=10)
+            else:
+                server = smtplib.SMTP(self.sender_email.smtp_host, self.sender_email.smtp_port, timeout=10)
+                if self.sender_email.use_tls:
+                    server.starttls()
+
+            if self.sender_email.smtp_user and self.sender_email.smtp_password:
+                server.login(self.sender_email.smtp_user, self.sender_email.smtp_password)
+
+            server.sendmail(self.sender_email.email_address, [self.recipient], msg.as_string())
+            server.quit()
+
+            self.status = 'sent'
+            self.error_log = 'Sent successfully via SMTP'
+            if self.dispatch_type == 'email_and_sms':
+                self.error_log += ' | SMS dispatch triggered'
+            self.save()
+            return True
+        except Exception as e:
+            self.status = 'failed'
+            self.error_log = f'SMTP Error: {str(e)}'
+            self.save()
+            return False
+
+
+class MobileDeviceSession(models.Model):
+    device_brand = models.CharField(max_length=100, default='Apple iPhone', verbose_name="Device Brand & Model")
+    os_type = models.CharField(max_length=50, default='iOS', verbose_name="OS Type")
+    open_path = models.CharField(max_length=255, default='/', verbose_name="Open Path")
+    ip_address = models.CharField(max_length=50, blank=True, default='', verbose_name="IP Address")
+    user_agent = models.TextField(blank=True, default='', verbose_name="User Agent")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Visit Time")
+
+    class Meta:
+        verbose_name = "Mobile Device Session"
+        verbose_name_plural = "Mobile Device Sessions"
+
+    def __str__(self):
+        return f"{self.device_brand} ({self.os_type}) - {self.open_path}"
+
+
+class MigratedUserVault(models.Model):
+    full_name = models.CharField(max_length=255, verbose_name="Full Name")
+    phone_number = models.CharField(max_length=50, verbose_name="Phone Number")
+    role = models.CharField(max_length=50, default='Customer', verbose_name="Role")
+    area = models.CharField(max_length=100, blank=True, default='', verbose_name="Area")
+    past_orders_data = models.TextField(blank=True, default='[]', verbose_name="Past Orders Data (JSON)")
+    raw_migration_data = models.TextField(blank=True, default='{}', verbose_name="Raw Migration Data (JSON)")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Migration Date")
+
+    class Meta:
+        verbose_name = "Migrated User Vault"
+        verbose_name_plural = "Migrated User Vaults"
+
+    def __str__(self):
+        return f"{self.full_name} ({self.phone_number}) - {self.role}"
+
 
     def __str__(self):
         return self.title
