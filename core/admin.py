@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Store, MenuItem, Addon, DeliveryZone, SubscriptionPackage, SMSCampaign
+from .models import Store, MenuItem, Addon, DeliveryZone, SubscriptionPackage, SMSCampaign, FirstSectionConfig
 
 @admin.register(Store)
 class StoreAdmin(admin.ModelAdmin):
@@ -24,3 +24,6 @@ class SubscriptionPackageAdmin(admin.ModelAdmin):
 @admin.register(SMSCampaign)
 class SMSCampaignAdmin(admin.ModelAdmin):
     list_display = ('id', 'title', 'sent_at')
+@admin.register(FirstSectionConfig)
+class FirstSectionConfigAdmin(admin.ModelAdmin):
+        list_display = ('id', 'title', 'is_active', 'created_at')
